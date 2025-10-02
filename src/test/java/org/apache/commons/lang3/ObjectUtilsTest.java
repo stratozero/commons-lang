@@ -19,6 +19,7 @@ package org.apache.commons.lang3;
 import static org.apache.commons.lang3.LangAssertions.assertIllegalArgumentException;
 import static org.apache.commons.lang3.LangAssertions.assertNullPointerException;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -47,9 +48,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.exception.CloneFailedException;
+import org.apache.commons.lang3.exception.CustomUncheckedException;
 import org.apache.commons.lang3.function.Suppliers;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -210,6 +213,44 @@ class ObjectUtilsTest extends AbstractLangTest {
     }
 
     /**
+     * Test {@link ObjectUtils#ifNotNull(Object, java.util.function.Consumer)}
+     */
+    @Test
+    void testIfNotNullConsumer() {
+        ObjectUtils.ifNotNull(null, unused -> fail());
+        ObjectUtils.ifNotNull(FOO, foo -> assertEquals(FOO, foo));
+
+        // check that the exception produced inside the consumer is rethrown
+        final CustomUncheckedException expectedException = new CustomUncheckedException("TEST exception Consumer");
+        final CustomUncheckedException thrown = assertThrows(CustomUncheckedException.class,
+            () -> ObjectUtils.ifNotNull(FOO, unused -> { throw expectedException; })
+        );
+
+        assertEquals(expectedException, thrown);
+    }
+
+    /**
+     * Test {@link ObjectUtils#ifNotNull(Object, Object, java.util.function.BiConsumer)}
+     */
+    @Test
+    void testIfNotNullBiConsumer() {
+        ObjectUtils.ifNotNull(null, BAR, (unusedObj, unusedCtx) -> fail());
+        ObjectUtils.ifNotNull(FOO, BAR, (foo, bar) -> {
+            assertEquals(FOO, foo);
+            assertEquals(BAR, bar);
+        });
+
+        // check that the exception produced inside the BiConsumer is rethrown
+        final CustomUncheckedException expectedException = new CustomUncheckedException("TEST exception BiConsumer");
+        final CustomUncheckedException thrown = assertThrows(CustomUncheckedException.class,
+            () -> ObjectUtils.ifNotNull(FOO, BAR, (unusedObj, unusedCtx) -> {
+                throw expectedException;
+            })
+        );
+        assertEquals(expectedException, thrown);
+    }
+
+  /**
      * Test for {@link ObjectUtils#isArray(Object)}.
      */
     @Test
